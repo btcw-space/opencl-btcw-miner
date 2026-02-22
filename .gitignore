@@ -1,0 +1,17 @@
+# Build artifacts
+*.obj
+*.pdb
+*.exp
+*.lib
+*.ilk
+
+# Runtime artifacts
+*.log
+kernel_cache.bin
+kernel_cache.hash
+
+# Release archives
+*.zip
+
+# Linux build output
+release/
