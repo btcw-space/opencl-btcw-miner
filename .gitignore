@@ -1,0 +1,18 @@
+# Build artifacts
+*.obj
+*.pdb
+*.exp
+*.lib
+*.ilk
+*.dll
+
+# Runtime artifacts
+*.log
+kernel_cache.bin
+kernel_cache.hash
+
+# Release archives
+*.zip
+
+# Shortcuts
+*.lnk
