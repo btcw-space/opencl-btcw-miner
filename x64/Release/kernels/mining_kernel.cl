@@ -60,18 +60,18 @@ __constant uint SHA256_K[64] = {
 #define SHA_sigma0(x)    (rotate((x), 25U) ^ rotate((x), 14U) ^ ((x) >> 3))
 #define SHA_sigma1(x)    (rotate((x), 15U) ^ rotate((x), 13U) ^ ((x) >> 10))
 
-inline uint read_be32(const uchar* p) {
+static inline uint read_be32(const uchar* p) {
     return ((uint)p[0] << 24) | ((uint)p[1] << 16) | ((uint)p[2] << 8) | (uint)p[3];
 }
 
-inline void write_be32(uchar* p, uint v) {
+static inline void write_be32(uchar* p, uint v) {
     p[0] = (uchar)(v >> 24);
     p[1] = (uchar)(v >> 16);
     p[2] = (uchar)(v >> 8);
     p[3] = (uchar)(v);
 }
 
-inline void sha256_transform(uint* s, const uchar* buf) {
+static inline void sha256_transform(uint* s, const uchar* buf) {
     uint a = s[0], b = s[1], c = s[2], d = s[3];
     uint e = s[4], f = s[5], g = s[6], h = s[7];
     uint w[64];
@@ -96,7 +96,7 @@ inline void sha256_transform(uint* s, const uchar* buf) {
     s[4] += e; s[5] += f; s[6] += g; s[7] += h;
 }
 
-inline void sha256_init(SHA256_CTX* ctx) {
+static inline void sha256_init(SHA256_CTX* ctx) {
     ctx->state[0] = 0x6a09e667;
     ctx->state[1] = 0xbb67ae85;
     ctx->state[2] = 0x3c6ef372;
@@ -108,7 +108,7 @@ inline void sha256_init(SHA256_CTX* ctx) {
     ctx->bytes = 0;
 }
 
-inline void sha256_update(SHA256_CTX* ctx, const uchar* data, uint len) {
+static inline void sha256_update(SHA256_CTX* ctx, const uchar* data, uint len) {
     uint bufsize = ctx->bytes & 0x3F;
     ctx->bytes += len;
     while (len >= 64 - bufsize) {
@@ -124,7 +124,7 @@ inline void sha256_update(SHA256_CTX* ctx, const uchar* data, uint len) {
         ctx->buf[bufsize + i] = data[i];
 }
 
-inline void sha256_final(SHA256_CTX* ctx, uchar* out32) {
+static inline void sha256_final(SHA256_CTX* ctx, uchar* out32) {
     uint bufsize = ctx->bytes & 0x3F;
     // Pad
     ctx->buf[bufsize++] = 0x80;
@@ -144,7 +144,7 @@ inline void sha256_final(SHA256_CTX* ctx, uchar* out32) {
 }
 
 // Double SHA-256
-inline void double_sha256(const uchar* data, uint len, uchar* out32) {
+static inline void double_sha256(const uchar* data, uint len, uchar* out32) {
     SHA256_CTX ctx;
     uchar mid[32];
     sha256_init(&ctx);
@@ -164,7 +164,7 @@ typedef struct {
     SHA256_CTX outer;
 } HMAC_SHA256_CTX;
 
-inline void hmac_sha256_init(HMAC_SHA256_CTX* hmac, const uchar* key, uint keylen) {
+static inline void hmac_sha256_init(HMAC_SHA256_CTX* hmac, const uchar* key, uint keylen) {
     uchar rkey[64];
     for (int i = 0; i < 64; i++) rkey[i] = 0;
 
@@ -190,11 +190,11 @@ inline void hmac_sha256_init(HMAC_SHA256_CTX* hmac, const uchar* key, uint keyle
     sha256_update(&hmac->inner, ipad, 64);
 }
 
-inline void hmac_sha256_update(HMAC_SHA256_CTX* hmac, const uchar* data, uint len) {
+static inline void hmac_sha256_update(HMAC_SHA256_CTX* hmac, const uchar* data, uint len) {
     sha256_update(&hmac->inner, data, len);
 }
 
-inline void hmac_sha256_final(HMAC_SHA256_CTX* hmac, uchar* out32) {
+static inline void hmac_sha256_final(HMAC_SHA256_CTX* hmac, uchar* out32) {
     uchar tmp[32];
     sha256_final(&hmac->inner, tmp);
     sha256_update(&hmac->outer, tmp, 32);
@@ -209,11 +209,11 @@ inline void hmac_sha256_final(HMAC_SHA256_CTX* hmac, uchar* out32) {
 // Follows the procedure from Bitcoin's libsecp256k1
 
 // Forward declarations (defined later, needed for message mod n reduction)
-inline void scalar_set_b32(Scalar* s, const uchar* b32);
-inline void scalar_get_b32(uchar* b32, const Scalar* s);
-inline void scalar_reduce(Scalar* s);
+static inline void scalar_set_b32(Scalar* s, const uchar* b32);
+static inline void scalar_get_b32(uchar* b32, const Scalar* s);
+static inline void scalar_reduce(Scalar* s);
 
-inline void rfc6979_generate_k(const uchar* seckey32, const uchar* msg32, uchar* nonce32) {
+static inline void rfc6979_generate_k(const uchar* seckey32, const uchar* msg32, uchar* nonce32) {
     uchar v[32], k[32];
     uchar keydata[64]; // seckey || msg_mod_n
     HMAC_SHA256_CTX hmac;
@@ -277,7 +277,7 @@ inline void rfc6979_generate_k(const uchar* seckey32, const uchar* msg32, uchar*
 // Scalar type is already defined in secp256k1_point.cl
 
 // Load big-endian 32 bytes into Scalar (little-endian limbs)
-inline void scalar_set_b32(Scalar* s, const uchar* b32) {
+static inline void scalar_set_b32(Scalar* s, const uchar* b32) {
     s->limbs[3] = ((ulong)b32[0] << 56) | ((ulong)b32[1] << 48) | ((ulong)b32[2] << 40) | ((ulong)b32[3] << 32) |
                    ((ulong)b32[4] << 24) | ((ulong)b32[5] << 16) | ((ulong)b32[6] << 8)  | (ulong)b32[7];
     s->limbs[2] = ((ulong)b32[8] << 56) | ((ulong)b32[9] << 48) | ((ulong)b32[10] << 40) | ((ulong)b32[11] << 32) |
@@ -289,7 +289,7 @@ inline void scalar_set_b32(Scalar* s, const uchar* b32) {
 }
 
 // Store Scalar to big-endian 32 bytes
-inline void scalar_get_b32(uchar* b32, const Scalar* s) {
+static inline void scalar_get_b32(uchar* b32, const Scalar* s) {
     b32[0]  = (uchar)(s->limbs[3] >> 56); b32[1]  = (uchar)(s->limbs[3] >> 48);
     b32[2]  = (uchar)(s->limbs[3] >> 40); b32[3]  = (uchar)(s->limbs[3] >> 32);
     b32[4]  = (uchar)(s->limbs[3] >> 24); b32[5]  = (uchar)(s->limbs[3] >> 16);
@@ -315,7 +315,7 @@ inline void scalar_get_b32(uchar* b32, const Scalar* s) {
 #define N_LIMB3 0xFFFFFFFFFFFFFFFFUL
 
 // Check if scalar >= n
-inline int scalar_check_overflow(const Scalar* s) {
+static inline int scalar_check_overflow(const Scalar* s) {
     if (s->limbs[3] > N_LIMB3) return 1;
     if (s->limbs[3] < N_LIMB3) return 0;
     if (s->limbs[2] > N_LIMB2) return 1;
@@ -327,7 +327,7 @@ inline int scalar_check_overflow(const Scalar* s) {
 }
 
 // Reduce scalar mod n (simple subtraction if >= n)
-inline void scalar_reduce(Scalar* s) {
+static inline void scalar_reduce(Scalar* s) {
     if (!scalar_check_overflow(s)) return;
     ulong borrow = 0;
     ulong d0 = sub_with_borrow(s->limbs[0], N_LIMB0, 0, &borrow);
@@ -339,7 +339,7 @@ inline void scalar_reduce(Scalar* s) {
 }
 
 // Scalar addition: r = (a + b) mod n
-inline void scalar_add_mod_n(Scalar* r, const Scalar* a, const Scalar* b) {
+static inline void scalar_add_mod_n(Scalar* r, const Scalar* a, const Scalar* b) {
     ulong carry = 0;
     r->limbs[0] = add_with_carry(a->limbs[0], b->limbs[0], 0, &carry);
     r->limbs[1] = add_with_carry(a->limbs[1], b->limbs[1], carry, &carry);
@@ -408,7 +408,7 @@ inline void scalar_add_mod_n(Scalar* r, const Scalar* a, const Scalar* b) {
     c1 = 0; \
 }
 
-inline void scalar_reduce_512(Scalar* r, const ulong* l) {
+static inline void scalar_reduce_512(Scalar* r, const ulong* l) {
     // nc = 2^256 - n (the complement)
     const ulong NC0 = 0x402DA1732FC9BEBFUL;  // ~N_LIMB0 + 1
     const ulong NC1 = 0x4551231950B75FC4UL;  // ~N_LIMB1
@@ -519,7 +519,7 @@ inline void scalar_reduce_512(Scalar* r, const ulong* l) {
 // Direct port of libsecp256k1's secp256k1_scalar_mul_512 + reduce.
 // Uses column-accumulation with a 192-bit accumulator (c2:c1:c0) to avoid
 // any possibility of carry overflow. This is the same approach as the CUDA miner.
-inline void scalar_mul_mod_n(Scalar* r, const Scalar* a, const Scalar* b) {
+static inline void scalar_mul_mod_n(Scalar* r, const Scalar* a, const Scalar* b) {
     ulong product[8];
     ulong c0, c1, c2;
 
@@ -572,7 +572,7 @@ inline void scalar_mul_mod_n(Scalar* r, const Scalar* a, const Scalar* b) {
 // Scalar squaring: r = a² mod n
 // Uses the same 192-bit accumulator approach as scalar_mul_mod_n.
 // Simply calls mul with both operands the same — the compiler can optimize.
-inline void scalar_sqr_mod_n(Scalar* r, const Scalar* a) {
+static inline void scalar_sqr_mod_n(Scalar* r, const Scalar* a) {
     scalar_mul_mod_n(r, a, a);
 }
 
@@ -589,7 +589,7 @@ inline void scalar_sqr_mod_n(Scalar* r, const Scalar* a) {
 // --- Signed 128-bit integer emulation ---
 typedef struct { long lo; long hi; } s128;  // signed 128-bit as (hi:lo)
 
-inline s128 s128_mul(long a, long b) {
+static inline s128 s128_mul(long a, long b) {
     // Signed 64x64→128 multiply
     // Split into unsigned multiply + sign correction
     ulong au = (ulong)a, bu = (ulong)b;
@@ -602,7 +602,7 @@ inline s128 s128_mul(long a, long b) {
     return r;
 }
 
-inline void s128_accum_mul(s128* acc, long a, long b) {
+static inline void s128_accum_mul(s128* acc, long a, long b) {
     s128 prod = s128_mul(a, b);
     ulong old_lo = (ulong)acc->lo;
     acc->lo += prod.lo;
@@ -610,14 +610,14 @@ inline void s128_accum_mul(s128* acc, long a, long b) {
     acc->hi += prod.hi + (long)carry;
 }
 
-inline void s128_rshift(s128* r, int n) {
+static inline void s128_rshift(s128* r, int n) {
     // Arithmetic right shift by n (0 < n < 64)
     r->lo = (long)(((ulong)r->lo >> n) | ((ulong)r->hi << (64 - n)));
     r->hi = r->hi >> n;  // arithmetic shift
 }
 
-inline ulong s128_to_u64(const s128* a) { return (ulong)a->lo; }
-inline long  s128_to_i64(const s128* a) { return a->lo; }
+static inline ulong s128_to_u64(const s128* a) { return (ulong)a->lo; }
+static inline long  s128_to_i64(const s128* a) { return a->lo; }
 
 // --- Signed62 representation (5 limbs of 62 bits each) ---
 typedef struct { long v[5]; } Signed62;
@@ -639,7 +639,7 @@ typedef struct {
 //   v[4] = 256  (just encodes the bit length)
 // modulus_inv62 = 0x34F20099AA774EC1
 
-inline long modinv64_divsteps_59(long zeta, ulong f0, ulong g0, Trans2x2* t) {
+static inline long modinv64_divsteps_59(long zeta, ulong f0, ulong g0, Trans2x2* t) {
     ulong u = 8, v = 0, q = 0, r = 8;
     ulong f = f0, g = g0, x, y, z;
     ulong mask1, mask2;
@@ -673,7 +673,7 @@ inline long modinv64_divsteps_59(long zeta, ulong f0, ulong g0, Trans2x2* t) {
     return zeta;
 }
 
-inline void modinv64_update_de_62(Signed62* d, Signed62* e, const Trans2x2* t,
+static inline void modinv64_update_de_62(Signed62* d, Signed62* e, const Trans2x2* t,
                                    long mod0, long mod1, long mod2, long mod3, long mod4,
                                    ulong mod_inv62) {
     const ulong M62 = 0x3FFFFFFFFFFFFFFFUL;
@@ -723,7 +723,7 @@ inline void modinv64_update_de_62(Signed62* d, Signed62* e, const Trans2x2* t,
     e->v[4] = s128_to_i64(&ce);
 }
 
-inline void modinv64_update_fg_62(Signed62* f, Signed62* g, const Trans2x2* t) {
+static inline void modinv64_update_fg_62(Signed62* f, Signed62* g, const Trans2x2* t) {
     const ulong M62 = 0x3FFFFFFFFFFFFFFFUL;
     const long f0=f->v[0], f1=f->v[1], f2=f->v[2], f3=f->v[3], f4=f->v[4];
     const long g0=g->v[0], g1=g->v[1], g2=g->v[2], g3=g->v[3], g4=g->v[4];
@@ -757,7 +757,7 @@ inline void modinv64_update_fg_62(Signed62* f, Signed62* g, const Trans2x2* t) {
     g->v[4] = s128_to_i64(&cg);
 }
 
-inline void modinv64_normalize_62(Signed62* r, long sign,
+static inline void modinv64_normalize_62(Signed62* r, long sign,
                                    long mod0, long mod1, long mod2, long mod3, long mod4) {
     const long M62 = (long)0x3FFFFFFFFFFFFFFFUL;
     long r0=r->v[0], r1=r->v[1], r2=r->v[2], r3=r->v[3], r4=r->v[4];
@@ -797,7 +797,7 @@ inline void modinv64_normalize_62(Signed62* r, long sign,
     r->v[0]=r0; r->v[1]=r1; r->v[2]=r2; r->v[3]=r3; r->v[4]=r4;
 }
 
-inline void scalar_inverse_mod_n(Scalar* r, const Scalar* a) {
+static inline void scalar_inverse_mod_n(Scalar* r, const Scalar* a) {
     const ulong M62 = 0x3FFFFFFFFFFFFFFFUL;
 
     // Modulus constants (n in signed62)
@@ -845,7 +845,7 @@ inline void scalar_inverse_mod_n(Scalar* r, const Scalar* a) {
 }
 
 // Scalar negation: r = n - a
-inline void scalar_negate(Scalar* r, const Scalar* a) {
+static inline void scalar_negate(Scalar* r, const Scalar* a) {
     if (scalar_is_zero(a)) {
         *r = *a;
         return;
@@ -858,7 +858,7 @@ inline void scalar_negate(Scalar* r, const Scalar* a) {
 }
 
 // Check if scalar is "high" (s > n/2)
-inline int scalar_is_high(const Scalar* s) {
+static inline int scalar_is_high(const Scalar* s) {
     // n/2 = 7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
     // Compare s > n/2
     Scalar half_n;
@@ -886,7 +886,7 @@ inline int scalar_is_high(const Scalar* s) {
 
 // DER encode a scalar (big-endian 32 bytes) into DER integer format
 // Returns number of bytes written
-inline int der_encode_integer(uchar* out, const uchar* val32) {
+static inline int der_encode_integer(uchar* out, const uchar* val32) {
     int start = 0;
     // Skip leading zeros
     while (start < 32 && val32[start] == 0) start++;
@@ -906,7 +906,7 @@ inline int der_encode_integer(uchar* out, const uchar* val32) {
 }
 
 // Full DER signature encoding: 0x30 <total_len> <r_der> <s_der>
-inline int der_encode_signature(uchar* out, const uchar* r32, const uchar* s32) {
+static inline int der_encode_signature(uchar* out, const uchar* r32, const uchar* s32) {
     uchar r_der[35], s_der[35];
     int r_len = der_encode_integer(r_der, r32);
     int s_len = der_encode_integer(s_der, s32);
@@ -933,7 +933,7 @@ inline int der_encode_signature(uchar* out, const uchar* r32, const uchar* s32) 
 // =============================================================================
 
 // Load an affine point from the precomputed table buffer
-inline void ecmult_table_load_point(AffinePoint* p, __global const ulong* table, int index) {
+static inline void ecmult_table_load_point(AffinePoint* p, __global const ulong* table, int index) {
     int off = index * 8;  // 8 ulongs per entry
     p->x.limbs[0] = table[off + 0];
     p->x.limbs[1] = table[off + 1];
@@ -947,7 +947,7 @@ inline void ecmult_table_load_point(AffinePoint* p, __global const ulong* table,
 
 // Fast scalar multiplication k*G using precomputed 2-bit windowed table
 // Replaces the naive wNAF approach with 128 iterations of table lookup + mixed add
-inline void scalar_mul_generator_precomp(JacobianPoint* r, const Scalar* k, __global const ulong* table) {
+static inline void scalar_mul_generator_precomp(JacobianPoint* r, const Scalar* k, __global const ulong* table) {
     point_set_infinity(r);
     
     AffinePoint ap;
@@ -972,7 +972,7 @@ inline void scalar_mul_generator_precomp(JacobianPoint* r, const Scalar* k, __gl
 // =============================================================================
 // Uses scalar_mul_generator_precomp (2-bit windowed table, ~8x faster) for k*G
 // and scalar_inverse_mod_n (nibble-based, faster) for k^(-1).
-inline int ecdsa_sign(const uchar* seckey32, const uchar* msg32, uchar* sig_out,
+static inline int ecdsa_sign(const uchar* seckey32, const uchar* msg32, uchar* sig_out,
                       __global const ulong* ecmult_table) {
     // 1. Generate deterministic nonce k via RFC 6979
     uchar nonce32[32];
@@ -1057,7 +1057,7 @@ typedef struct {
     ulong limbs[4]; // little-endian
 } uint256_t;
 
-inline void uint256_add(uint256_t* r, const uint256_t* a, const uint256_t* b) {
+static inline void uint256_add(uint256_t* r, const uint256_t* a, const uint256_t* b) {
     ulong carry = 0;
     r->limbs[0] = add_with_carry(a->limbs[0], b->limbs[0], 0, &carry);
     r->limbs[1] = add_with_carry(a->limbs[1], b->limbs[1], carry, &carry);
@@ -1217,7 +1217,7 @@ __kernel void btcw_mine(
 // Total: 512 entries * 64 bytes = 32768 bytes = 4096 ulongs.
 
 // Helper: convert Jacobian point to affine and write 8 ulongs to table
-inline void write_affine_to_table(__global ulong* table, int index,
+static inline void write_affine_to_table(__global ulong* table, int index,
                                    const JacobianPoint* jac) {
     FieldElement z_inv, z_inv2, z_inv3, ax, ay;
     field_inv_impl(&z_inv, &jac->z);

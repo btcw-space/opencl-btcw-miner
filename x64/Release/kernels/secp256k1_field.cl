@@ -27,7 +27,7 @@
 // =============================================================================
 
 // Multiply two 64-bit numbers, get 128-bit result as (hi, lo)
-inline ulong2 mul64_full(ulong a, ulong b) {
+static inline ulong2 mul64_full(ulong a, ulong b) {
     // Use OpenCL's mul_hi for high part
     ulong lo = a * b;
     ulong hi = mul_hi(a, b);
@@ -35,7 +35,7 @@ inline ulong2 mul64_full(ulong a, ulong b) {
 }
 
 // Add with carry: result = a + b + carry_in, returns new carry
-inline ulong add_with_carry(ulong a, ulong b, ulong carry_in, ulong* carry_out) {
+static inline ulong add_with_carry(ulong a, ulong b, ulong carry_in, ulong* carry_out) {
     ulong sum = a + b;
     ulong c1 = (sum < a) ? 1UL : 0UL;
     sum += carry_in;
@@ -45,7 +45,7 @@ inline ulong add_with_carry(ulong a, ulong b, ulong carry_in, ulong* carry_out) 
 }
 
 // Subtract with borrow: result = a - b - borrow_in, returns new borrow
-inline ulong sub_with_borrow(ulong a, ulong b, ulong borrow_in, ulong* borrow_out) {
+static inline ulong sub_with_borrow(ulong a, ulong b, ulong borrow_in, ulong* borrow_out) {
     ulong diff = a - b;
     ulong b1 = (a < b) ? 1UL : 0UL;
     ulong temp = diff;
@@ -69,7 +69,7 @@ typedef struct {
 // So 2^256 ≡ K (mod p), meaning we can reduce by replacing high bits with K*high
 // =============================================================================
 
-inline void field_reduce(FieldElement* r, const ulong* a8) {
+static inline void field_reduce(FieldElement* r, const ulong* a8) {
     // a8 is 512-bit number (8 limbs), reduce to 256-bit mod p
     // Since p = 2^256 - K, we have: a mod p = a_low + K * a_high (mod p)
 
@@ -154,7 +154,7 @@ inline void field_reduce(FieldElement* r, const ulong* a8) {
 // Field Addition: r = (a + b) mod p
 // =============================================================================
 
-inline void field_add_impl(FieldElement* r, const FieldElement* a, const FieldElement* b) {
+static inline void field_add_impl(FieldElement* r, const FieldElement* a, const FieldElement* b) {
     ulong carry = 0;
     ulong sum[4];
 
@@ -187,7 +187,7 @@ inline void field_add_impl(FieldElement* r, const FieldElement* a, const FieldEl
 // Field Subtraction: r = (a - b) mod p
 // =============================================================================
 
-inline void field_sub_impl(FieldElement* r, const FieldElement* a, const FieldElement* b) {
+static inline void field_sub_impl(FieldElement* r, const FieldElement* a, const FieldElement* b) {
     ulong borrow = 0;
     ulong diff[4];
 
@@ -217,7 +217,7 @@ inline void field_sub_impl(FieldElement* r, const FieldElement* a, const FieldEl
 // Field Multiplication: r = (a * b) mod p
 // =============================================================================
 
-inline void field_mul_impl(FieldElement* r, const FieldElement* a, const FieldElement* b) {
+static inline void field_mul_impl(FieldElement* r, const FieldElement* a, const FieldElement* b) {
     // Fully unrolled 4x4 schoolbook multiplication
     ulong a0 = a->limbs[0], a1 = a->limbs[1], a2 = a->limbs[2], a3 = a->limbs[3];
     ulong b0 = b->limbs[0], b1 = b->limbs[1], b2 = b->limbs[2], b3 = b->limbs[3];
@@ -347,17 +347,17 @@ inline void field_mul_impl(FieldElement* r, const FieldElement* a, const FieldEl
 // =============================================================================
 
 // Forward declaration for field_sqr_n_impl
-inline void field_sqr_impl(FieldElement* r, const FieldElement* a);
+static inline void field_sqr_impl(FieldElement* r, const FieldElement* a);
 
 // Repeated squaring helper: r = r^(2^n) — in-place
-inline void field_sqr_n_impl(FieldElement* r, int n) {
+static inline void field_sqr_n_impl(FieldElement* r, int n) {
     for (int i = 0; i < n; i++) {
         FieldElement tmp = *r;
         field_sqr_impl(r, &tmp);
     }
 }
 
-inline void field_sqr_impl(FieldElement* r, const FieldElement* a) {
+static inline void field_sqr_impl(FieldElement* r, const FieldElement* a) {
     // Fully unrolled squaring: exploits a[i]*a[j] == a[j]*a[i]
     ulong a0 = a->limbs[0], a1 = a->limbs[1], a2 = a->limbs[2], a3 = a->limbs[3];
     ulong product[8];
@@ -475,7 +475,7 @@ inline void field_sqr_impl(FieldElement* r, const FieldElement* a) {
 // Field Negation: r = -a mod p = p - a
 // =============================================================================
 
-inline void field_neg_impl(FieldElement* r, const FieldElement* a) {
+static inline void field_neg_impl(FieldElement* r, const FieldElement* a) {
     // Check if a is zero
     ulong is_zero = ((a->limbs[0] | a->limbs[1] | a->limbs[2] | a->limbs[3]) == 0) ? 1UL : 0UL;
 
@@ -500,7 +500,7 @@ inline void field_neg_impl(FieldElement* r, const FieldElement* a) {
 // p-2 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2D
 // =============================================================================
 
-inline void field_inv_impl(FieldElement* r, const FieldElement* a) {
+static inline void field_inv_impl(FieldElement* r, const FieldElement* a) {
     FieldElement x2, x3, x6, x12, x24, x48, x96, x192, x7, x31, x223;
     FieldElement x5, x11, x22;
     FieldElement t;

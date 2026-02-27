@@ -60,26 +60,26 @@ typedef struct {
 // Point Utilities
 // =============================================================================
 
-inline void point_set_infinity(JacobianPoint* p) {
+static inline void point_set_infinity(JacobianPoint* p) {
     p->x.limbs[0] = 0; p->x.limbs[1] = 0; p->x.limbs[2] = 0; p->x.limbs[3] = 0;
     p->y.limbs[0] = 1; p->y.limbs[1] = 0; p->y.limbs[2] = 0; p->y.limbs[3] = 0;
     p->z.limbs[0] = 0; p->z.limbs[1] = 0; p->z.limbs[2] = 0; p->z.limbs[3] = 0;
     p->infinity = 1;
 }
 
-inline int point_is_infinity(const JacobianPoint* p) {
+static inline int point_is_infinity(const JacobianPoint* p) {
     return p->infinity ||
            ((p->z.limbs[0] | p->z.limbs[1] | p->z.limbs[2] | p->z.limbs[3]) == 0);
 }
 
-inline void point_from_affine(JacobianPoint* j, const AffinePoint* a) {
+static inline void point_from_affine(JacobianPoint* j, const AffinePoint* a) {
     j->x = a->x;
     j->y = a->y;
     j->z.limbs[0] = 1; j->z.limbs[1] = 0; j->z.limbs[2] = 0; j->z.limbs[3] = 0;
     j->infinity = 0;
 }
 
-inline void get_generator(AffinePoint* g) {
+static inline void get_generator(AffinePoint* g) {
     g->x.limbs[0] = SECP256K1_GX0;
     g->x.limbs[1] = SECP256K1_GX1;
     g->x.limbs[2] = SECP256K1_GX2;
@@ -96,7 +96,7 @@ inline void get_generator(AffinePoint* g) {
 // Using standard doubling formula for a = 0 curves (secp256k1)
 // =============================================================================
 
-inline void point_double_impl(JacobianPoint* r, const JacobianPoint* p) {
+static inline void point_double_impl(JacobianPoint* r, const JacobianPoint* p) {
     if (point_is_infinity(p)) {
         point_set_infinity(r);
         return;
@@ -150,7 +150,7 @@ inline void point_double_impl(JacobianPoint* r, const JacobianPoint* p) {
 // Complete addition formula
 // =============================================================================
 
-inline void point_add_impl(JacobianPoint* r, const JacobianPoint* p, const JacobianPoint* q) {
+static inline void point_add_impl(JacobianPoint* r, const JacobianPoint* p, const JacobianPoint* q) {
     // Handle infinity cases
     if (point_is_infinity(p)) {
         *r = *q;
@@ -245,7 +245,7 @@ inline void point_add_impl(JacobianPoint* r, const JacobianPoint* p, const Jacob
 // More efficient when one point is affine (Z = 1)
 // =============================================================================
 
-inline void point_add_mixed_impl(JacobianPoint* r, const JacobianPoint* p, const AffinePoint* q) {
+static inline void point_add_mixed_impl(JacobianPoint* r, const JacobianPoint* p, const AffinePoint* q) {
     if (point_is_infinity(p)) {
         point_from_affine(r, q);
         return;
@@ -323,17 +323,17 @@ inline void point_add_mixed_impl(JacobianPoint* r, const JacobianPoint* p, const
 // Scalar Utilities for wNAF
 // =============================================================================
 
-inline int scalar_is_zero(const Scalar* k) {
+static inline int scalar_is_zero(const Scalar* k) {
     return (k->limbs[0] | k->limbs[1] | k->limbs[2] | k->limbs[3]) == 0;
 }
 
-inline int scalar_bit(const Scalar* k, int pos) {
+static inline int scalar_bit(const Scalar* k, int pos) {
     int limb = pos / 64;
     int bit = pos % 64;
     return (int)((k->limbs[limb] >> bit) & 1UL);
 }
 
-inline void scalar_sub_u64(Scalar* a, ulong val, Scalar* r) {
+static inline void scalar_sub_u64(Scalar* a, ulong val, Scalar* r) {
     *r = *a;
     ulong old = r->limbs[0];
     r->limbs[0] -= val;
@@ -345,7 +345,7 @@ inline void scalar_sub_u64(Scalar* a, ulong val, Scalar* r) {
     }
 }
 
-inline void scalar_add_u64(Scalar* a, ulong val, Scalar* r) {
+static inline void scalar_add_u64(Scalar* a, ulong val, Scalar* r) {
     *r = *a;
     ulong old = r->limbs[0];
     r->limbs[0] += val;
@@ -359,7 +359,7 @@ inline void scalar_add_u64(Scalar* a, ulong val, Scalar* r) {
 
 // Convert scalar to wNAF representation (window width 5)
 // Returns length of wNAF representation
-inline int scalar_to_wnaf(const Scalar* k, int wnaf[260]) {
+static inline int scalar_to_wnaf(const Scalar* k, int wnaf[260]) {
     Scalar temp = *k;
     int len = 0;
     const int window_size = 32;   // 2^5
@@ -408,7 +408,7 @@ inline int scalar_to_wnaf(const Scalar* k, int wnaf[260]) {
 }
 
 // Negate Y coordinate of Jacobian point
-inline void point_negate_y(JacobianPoint* p) {
+static inline void point_negate_y(JacobianPoint* p) {
     FieldElement zero;
     zero.limbs[0] = 0; zero.limbs[1] = 0;
     zero.limbs[2] = 0; zero.limbs[3] = 0;
@@ -420,7 +420,7 @@ inline void point_negate_y(JacobianPoint* p) {
 // wNAF (window width 5) — matches CUDA's scalar_mul
 // =============================================================================
 
-inline void scalar_mul_impl(JacobianPoint* r, const Scalar* k, const AffinePoint* p) {
+static inline void scalar_mul_impl(JacobianPoint* r, const Scalar* k, const AffinePoint* p) {
     // Check for zero scalar
     if (scalar_is_zero(k)) {
         point_set_infinity(r);
@@ -469,7 +469,7 @@ inline void scalar_mul_impl(JacobianPoint* r, const Scalar* k, const AffinePoint
 // Scalar Multiplication with Generator: R = k * G
 // =============================================================================
 
-inline void scalar_mul_generator_impl(JacobianPoint* r, const Scalar* k) {
+static inline void scalar_mul_generator_impl(JacobianPoint* r, const Scalar* k) {
     AffinePoint G;
     get_generator(&G);
     scalar_mul_impl(r, k, &G);
