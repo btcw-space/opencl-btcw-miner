@@ -12,11 +12,12 @@ REM   - PDCurses (built for wincon)
 REM =============================================================================
 
 REM --- Configuration (adjust these paths for your system) ---
-set CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9
+REM These can be overridden via environment variables (useful for CI builds)
+if not defined CUDA_PATH set CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9
 if not defined PDCURSES_PATH set PDCURSES_PATH=C:\PDCurses
-REM OpenCL headers and lib from CUDA Toolkit (works for all GPU vendors)
-set OPENCL_INC=%CUDA_PATH%\include
-set OPENCL_LIB=%CUDA_PATH%\lib\x64
+REM OpenCL headers and lib (from CUDA Toolkit, vcpkg, or any OpenCL SDK)
+if not defined OPENCL_INC set OPENCL_INC=%CUDA_PATH%\include
+if not defined OPENCL_LIB set OPENCL_LIB=%CUDA_PATH%\lib\x64
 
 REM PDCurses
 set PDCURSES_INC=%PDCURSES_PATH%
@@ -44,7 +45,6 @@ if %ERRORLEVEL% neq 0 (
     echo.
     echo BUILD FAILED!
     echo.
-    pause
     exit /b 1
 )
 

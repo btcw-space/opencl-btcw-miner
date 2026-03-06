@@ -1,18 +1,22 @@
 #!/bin/bash
 # =============================================================================
-# BTCW OpenCL GPU Miner - Linux Build Script
+# BTCW OpenCL GPU Miner - Linux / macOS Build Script
 # =============================================================================
 # Copyright (c) 2026 btcw.space <btcw.space@proton.me>
 # Copyright (c) 2026 btcw.space. All rights reserved.
 #
-# Requirements:
+# Linux requirements:
 #   sudo apt install build-essential ocl-icd-opencl-dev
 #
-# For NVIDIA GPUs:
+# For NVIDIA GPUs (Linux):
 #   sudo apt install nvidia-driver-560-server nvidia-opencl-icd
 #
-# For AMD GPUs:
+# For AMD GPUs (Linux):
 #   Install ROCm or AMDGPU-PRO driver with OpenCL support
+#
+# macOS requirements:
+#   Xcode Command Line Tools (xcode-select --install)
+#   OpenCL framework ships with macOS — no extra install needed.
 #
 # Usage:
 #   chmod +x build_linux.sh
@@ -27,7 +31,7 @@
 set -e
 
 echo ""
-echo "===== BTCW OpenCL GPU Miner - Linux Build ====="
+echo "===== BTCW OpenCL GPU Miner - Build ====="
 echo ""
 
 # Output directory
@@ -37,12 +41,25 @@ EXE_NAME="btcw_opencl_miner"
 # Create output directories
 mkdir -p "${OUT_DIR}/kernels"
 
+# Detect platform and set linker flags
+OS_NAME="$(uname -s)"
+case "${OS_NAME}" in
+    Darwin*)
+        echo "Detected macOS — using -framework OpenCL"
+        OPENCL_LIBS="-framework OpenCL"
+        ;;
+    *)
+        echo "Detected Linux — using -lOpenCL -lrt"
+        OPENCL_LIBS="-lOpenCL -lrt"
+        ;;
+esac
+
 # Compile
 echo "Compiling opencl_miner_linux.cpp ..."
 g++ -O2 -std=c++17 -Wall -Wextra -Wno-unused-parameter \
     -o "${OUT_DIR}/${EXE_NAME}" \
     opencl_miner_linux.cpp \
-    -lOpenCL -lrt -lpthread
+    ${OPENCL_LIBS} -lpthread
 
 echo "Compilation successful!"
 echo ""
@@ -52,6 +69,11 @@ echo "Copying OpenCL kernel files..."
 cp -v kernels/secp256k1_field.cl "${OUT_DIR}/kernels/"
 cp -v kernels/secp256k1_point.cl "${OUT_DIR}/kernels/"
 cp -v mining_kernel.cl "${OUT_DIR}/kernels/"
+
+# Copy ecmult table
+if [ -f "ecmult_gen_table.bin" ]; then
+    cp -v ecmult_gen_table.bin "${OUT_DIR}/"
+fi
 
 echo ""
 echo "===== Build Complete ====="

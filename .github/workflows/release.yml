@@ -1,0 +1,139 @@
+# =============================================================================
+# BTCW OpenCL GPU Miner — CI Release Workflow
+# =============================================================================
+# Builds Windows, Linux, and macOS binaries on version tags (v*) and creates
+# a draft GitHub Release with all artifacts attached.
+# =============================================================================
+
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Windows x86_64
+  # ---------------------------------------------------------------------------
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install OpenCL SDK (vcpkg)
+        run: |
+          vcpkg install opencl:x64-windows
+          echo "OPENCL_INC=C:\vcpkg\installed\x64-windows\include" >> $env:GITHUB_ENV
+          echo "OPENCL_LIB=C:\vcpkg\installed\x64-windows\lib" >> $env:GITHUB_ENV
+
+      - name: Build PDCurses
+        run: |
+          git clone --depth 1 https://github.com/wmcbrine/PDCurses.git C:\PDCurses
+          cd C:\PDCurses\wincon
+          nmake -f Makefile.vc
+          echo "PDCURSES_PATH=C:\PDCurses" >> $env:GITHUB_ENV
+
+      - name: Build miner
+        run: |
+          call build.bat
+        shell: cmd
+
+      - name: Package
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $archive = "BTCW_OPENCL_MINER_${tag}_win64.zip"
+          Compress-Archive -Path "x64\Release\*" -DestinationPath $archive
+          echo "ARCHIVE=$archive" >> $env:GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: win64
+          path: ${{ env.ARCHIVE }}
+
+  # ---------------------------------------------------------------------------
+  # Linux x86_64
+  # ---------------------------------------------------------------------------
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenCL headers
+        run: sudo apt-get update && sudo apt-get install -y ocl-icd-opencl-dev
+
+      - name: Build
+        run: |
+          chmod +x build_linux.sh
+          ./build_linux.sh
+
+      - name: Package
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          ARCHIVE="BTCW_OPENCL_MINER_${TAG}_linux_x86_64.tar.gz"
+          tar -czf "${ARCHIVE}" -C release .
+          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x86_64
+          path: ${{ env.ARCHIVE }}
+
+  # ---------------------------------------------------------------------------
+  # macOS Apple Silicon (arm64)
+  # ---------------------------------------------------------------------------
+  build-macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          chmod +x build_linux.sh
+          ./build_linux.sh
+
+      - name: Package
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          ARCHIVE="BTCW_OPENCL_MINER_${TAG}_macos_arm64.tar.gz"
+          tar -czf "${ARCHIVE}" -C release .
+          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64
+          path: ${{ env.ARCHIVE }}
+
+  # ---------------------------------------------------------------------------
+  # Create GitHub Release (draft)
+  # ---------------------------------------------------------------------------
+  release:
+    needs: [build-windows, build-linux, build-macos-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lhR artifacts/
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: artifacts/*
