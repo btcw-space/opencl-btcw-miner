@@ -1,8 +1,8 @@
 # =============================================================================
 # BTCW Metal GPU Miner — macOS Apple Silicon Release Workflow
 # =============================================================================
-# Builds the Metal miner for macOS arm64 on version tags ending in -metal
-# (e.g. v26.5.6-metal) and creates a draft GitHub Release.
+# Builds the Metal miner for macOS arm64 on BTCW_METAL_MINER_v* tags
+# (e.g. BTCW_METAL_MINER_v1.0.2-metal) and creates a draft GitHub Release.
 # Does NOT interfere with the OpenCL release workflow (release.yml).
 # =============================================================================
 
@@ -11,7 +11,7 @@ name: "Build & Release (Metal)"
 on:
   push:
     tags:
-      - 'v*-metal'
+      - 'BTCW_METAL_MINER_v*'
 
 permissions:
   contents: write
